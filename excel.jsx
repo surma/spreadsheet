@@ -53,10 +53,7 @@ function evalFormula(sheet, formula) {
       ${sheet.cells
         .map((row, y) =>
           row
-            .map(
-              (cell, x) =>
-                `const ${excelColumn(x)}${y} = ${sheet.cells[y][x].value};`
-            )
+            .map((cell, x) => `const ${excelColumn(x)}${y} = ${cell.value};`)
             .join("\n")
         )
         .join("\n")}
