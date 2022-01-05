@@ -1,5 +1,5 @@
 /** @jsx h */
-import {render, h, Fragment} from "preact";
+import { render, h, Fragment } from "preact";
 
 import Excel from "./excel.jsx";
 
