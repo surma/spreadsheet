@@ -49,8 +49,8 @@ function update(sheet) {
 
 function evalFormula(sheet, formula) {
   const code = `
-		(function() {
-			${sheet.cells
+    (function() {
+      ${sheet.cells
         .map((row, y) =>
           row
             .map(
@@ -60,9 +60,9 @@ function evalFormula(sheet, formula) {
             .join("\n")
         )
         .join("\n")}
-			return ${formula};
-		})();
-	`;
+      return ${formula};
+    })();
+  `;
   return eval(code);
 }
 
