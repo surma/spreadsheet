@@ -18,27 +18,33 @@ function excelColumn(idx) {
   return result.filter(Boolean).join("");
 }
 
+function excelAddress(sheet, idx) {
+  const x = idx % sheet.cols;
+  const y = Math.floor(idx / sheet.cols);
+  return `${excelColumn(x)}${y}`;
+}
+
 function newSpreadsheet(cols, rows) {
   return {
-    cells: Array.from({ length: rows }, () =>
-      Array.from({ length: cols }).map(() => ({
-        formula: "0",
-        value: 0,
-      }))
-    ),
+    cols,
+    rows,
+    cells: Array.from({ length: cols * rows }, () => ({
+      formula: "0",
+      value: 0,
+    })),
   };
+}
+
+function getCell(sheet, x, y) {
+  return sheet.cells[y * sheet.cols + x];
 }
 
 function iterate(sheet) {
   let didAnUpdate = false;
-  for (let y = 0; y < sheet.cells.length; y++) {
-    const row = sheet.cells[y];
-    for (let x = 0; x < row.length; x++) {
-      const cell = row[x];
-      const newValue = evalFormula(sheet, cell.formula);
-      didAnUpdate = didAnUpdate || newValue != cell.value;
-      cell.value = newValue;
-    }
+  for (const cell of sheet.cells) {
+    const newValue = evalFormula(sheet, cell.formula);
+    didAnUpdate = didAnUpdate || newValue != cell.value;
+    cell.value = newValue;
   }
   return didAnUpdate;
 }
@@ -51,10 +57,8 @@ function evalFormula(sheet, formula) {
   const code = `
     (function() {
       ${sheet.cells
-        .map((row, y) =>
-          row
-            .map((cell, x) => `const ${excelColumn(x)}${y} = ${cell.value};`)
-            .join("\n")
+        .map(
+          (cell, idx) => `const ${excelAddress(sheet, idx)} = ${cell.value};`
         )
         .join("\n")}
       return ${formula};
@@ -67,12 +71,10 @@ export default function ({ cols, rows }) {
   const [sheet, setSheet] = useState(newSpreadsheet(cols, rows));
 
   function setCellFormula(sheet, x, y, v) {
-    sheet.cells[y][x].formula = v;
+    getCell(sheet, x, y).formula = v;
     update(sheet);
-    // Avoid object equality so preact doesn’t debounce.
-    setSheet({
-      cells: sheet.cells,
-    });
+    // Shallow copy so preact doesn’t skip rendering
+    setSheet({ ...sheet });
   }
 
   return (
@@ -92,7 +94,7 @@ export default function ({ cols, rows }) {
                 row={row}
                 col={col}
                 setCellFormula={(v) => setCellFormula(sheet, col, row, v)}
-                cell={sheet.cells[row][col]}
+                cell={getCell(sheet, col, row)}
               />
             </td>
           ))}
