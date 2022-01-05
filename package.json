@@ -1,0 +1,14 @@
+{
+  "name": "excel",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "vite ."
+  },
+  "author": "Surma <surma@surma.dev>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "clean-set": "^1.1.2",
+    "preact": "^10.6.4",
+    "vite": "^2.7.10"
+  }
+}
