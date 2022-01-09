@@ -1,8 +1,7 @@
-/** @jsx h */
-import { render, h, Fragment } from "preact";
+/* @jsx h */
+import { render, h } from "preact";
 
-import Excel from "./excel.jsx";
+import Spreadsheet from "./spreadsheet.jsx";
 
 const main = document.querySelector("main");
-
-render(<Excel rows={10} cols={10} />, main);
+render(<Spreadsheet rows={10} cols={10} />, main);
