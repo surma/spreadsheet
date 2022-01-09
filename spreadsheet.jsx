@@ -19,6 +19,7 @@ const navigation = {
   Left: { x: -1, y: 0 },
   Right: { x: 1, y: 0 },
 };
+
 function calcNewPosition(currentPos, rows, cols, direction) {
   const newPos = { ...currentPos };
   const delta = navigation[direction];

@@ -1,6 +1,6 @@
 import { useReducer } from "preact/hooks";
 
-import { range } from "./utils.js";
+import { range, clamp } from "./utils.js";
 
 export function spreadsheetColumn(idx) {
   return String.fromCharCode("A".charCodeAt(0) + idx);
@@ -10,10 +10,16 @@ class SpreadsheetData {
   constructor(rows, cols) {
     this.rows = rows;
     this.cols = cols;
-    this.cells = Array.from({ length: cols * rows }, () => ({
-      value: 0,
-      computedValue: 0,
-    }));
+    this.cells = Array.from({ length: cols * rows }, (_, idx) => {
+      const [x, y] = this.idxToCoords(idx);
+      return {
+        x,
+        y,
+        idx,
+        value: 0,
+        computedValue: 0,
+      };
+    });
   }
 
   getCell(x, y) {
@@ -26,7 +32,11 @@ class SpreadsheetData {
 
   generateCode(x, y) {
     const cell = this.getCell(x, y);
-    return `(function () {
+    const code = `(function () {
+			const COLS=${this.cols};
+			const ROWS=${this.rows};
+			const X = ${x};
+			const Y = ${y};
       ${this.cells
         .map((cell, idx) => {
           const [x, y] = this.idxToCoords(idx);
@@ -34,8 +44,25 @@ class SpreadsheetData {
           return `const ${cellName} = ${JSON.stringify(cell.computedValue)};`;
         })
         .join("\n")}
+
+      const cells = ${JSON.stringify(
+        Object.fromEntries(
+          this.cells.map((cell, idx) => {
+            const [x, y] = this.idxToCoords(idx);
+            return [`${x}|${y}`, cell.computedValue];
+          })
+        )
+      )};
+
+			function rel(dx, dy) {
+				const x = clamp(0, X + dx, COLS);
+				const y = clamp(0, Y + dy, ROWS);
+				return cells[x+"|"+y];
+			}
+
       return ${cell.value};
     })();`;
+    return code;
   }
 
   computeCell(x, y) {
