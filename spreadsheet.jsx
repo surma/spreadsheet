@@ -1,9 +1,8 @@
 /* @jsx h */
 import { h } from "preact";
-import { useState } from "preact/hooks";
+import { useState, useRef, useEffect } from "preact/hooks";
 
 import useSpreadsheetData, { spreadsheetColumn } from "./spreadsheet-data.js";
-import useFocusByRef from "./use-focus-by-ref.js";
 import { range } from "./utils.js";
 
 import classes from "./spreadsheet.module.css";
@@ -40,26 +39,26 @@ export default function Spreadsheet({ rows, cols }) {
 
 function Cell({ x, y, cell, set }) {
   const [isEditing, setEditing] = useState(false);
-  const focusRef = useFocusByRef();
+  const ref = useRef(null);
 
-  if (isEditing) {
+    useEffect(() => {
+      if(isEditing) ref.current?.select();
+    }, [isEditing]);
+
     return (
       <input
+        ref={ref}
         class={classes.cell}
-        ref={focusRef}
         type="text"
-        value={cell.value}
+        value={isEditing ? cell.value : cell.computedValue}
+        onfocus={() => {
+          setEditing(true)
+        }}
+        readonly={!isEditing}
         onblur={(ev) => {
           setEditing(false);
           set(ev.target.value);
         }}
       />
     );
-  }
-
-  return (
-    <span class={classes.cell} onclick={() => setEditing(true)}>
-      {cell.computedValue}
-    </span>
-  );
 }

@@ -37,7 +37,11 @@ input.cell {
   font-family: inherit;
   font-weight: inherit;
   border: 0;
-  outline: 1px solid blue;
   text-align: right;
   background: transparent;
+}
+
+
+input.cell:not([readonly]) {
+  outline: 1px solid blue;
 }
