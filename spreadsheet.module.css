@@ -41,7 +41,6 @@ input.cell {
   background: transparent;
 }
 
-
 input.cell:not([readonly]) {
   outline: 1px solid blue;
 }
