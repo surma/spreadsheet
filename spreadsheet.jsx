@@ -120,6 +120,7 @@ function Cell({ x, y, onEdit, cell, set }) {
         setEditing(true);
         onEdit();
       }}
+      title={cell.computedValue}
       readonly={!isEditing}
       onblur={(ev) => {
         setEditing(false);

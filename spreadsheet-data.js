@@ -33,10 +33,10 @@ class SpreadsheetData {
   generateCode(x, y) {
     const cell = this.getCell(x, y);
     const code = `(function () {
-			const COLS=${this.cols};
-			const ROWS=${this.rows};
-			const X = ${x};
-			const Y = ${y};
+      const COLS=this.cols;
+      const ROWS=this.rows;
+      const X = ${x};
+      const Y = ${y};
       ${this.cells
         .map((cell, idx) => {
           const [x, y] = this.idxToCoords(idx);
@@ -45,23 +45,14 @@ class SpreadsheetData {
         })
         .join("\n")}
 
-      const cells = ${JSON.stringify(
-        Object.fromEntries(
-          this.cells.map((cell, idx) => {
-            const [x, y] = this.idxToCoords(idx);
-            return [`${x}|${y}`, cell.computedValue];
-          })
-        )
-      )};
-
-			function rel(dx, dy) {
-				const x = clamp(0, X + dx, COLS);
-				const y = clamp(0, Y + dy, ROWS);
-				return cells[x+"|"+y];
-			}
+      const rel = (dx, dy) => {
+        const x = clamp(0, X + dx, COLS);
+        const y = clamp(0, Y + dy, ROWS);
+        return this.getCell(x, y).computedValue;
+      };
 
       return ${cell.value};
-    })();`;
+    })`;
     return code;
   }
 
@@ -69,7 +60,7 @@ class SpreadsheetData {
     const cell = this.getCell(x, y);
     let result;
     try {
-      result = eval(this.generateCode(x, y));
+      result = eval(this.generateCode(x, y)).call(this);
     } catch (e) {
       result = `#ERROR ${e.message}`;
     }
