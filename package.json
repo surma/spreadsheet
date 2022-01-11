@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "scripts": {
     "dev": "vite src",
-    "build": "vite build src"
+    "build": "vite build --outDir ../dist src"
   },
   "author": "Surma <surma@surma.dev>",
   "license": "Apache-2.0",
