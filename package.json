@@ -2,7 +2,8 @@
   "name": "excel",
   "version": "0.0.1",
   "scripts": {
-    "dev": "vite ."
+    "dev": "vite src",
+    "build": "vite build src"
   },
   "author": "Surma <surma@surma.dev>",
   "license": "Apache-2.0",
