@@ -1,6 +1,6 @@
 import { useReducer } from "preact/hooks";
 
-import { range, clamp } from "./utils.js";
+import { isEqual, range } from "./utils.js";
 
 export function spreadsheetColumn(idx) {
   return String.fromCharCode("A".charCodeAt(0) + idx);
@@ -59,6 +59,8 @@ class SpreadsheetData {
       ${this.cells
         .map((cell, idx) => {
           const cellName = this.idxToName(idx);
+          const x = JSON.stringify(cell.x);
+          const y = JSON.stringify(cell.y);
           return `Object.defineProperty(globalThis, ${JSON.stringify(
             cellName
           )}, {
@@ -67,7 +69,7 @@ class SpreadsheetData {
               spreadsheetData.addDependency(${JSON.stringify(
                 name
               )}, ${JSON.stringify(cellName)});
-              return ${JSON.stringify(cell.computedValue)};
+              return spreadsheetData.getCell(${x}, ${y}).computedValue;
             }
           });`;
         })
@@ -98,9 +100,10 @@ class SpreadsheetData {
     try {
       result = eval(this.generateCode(x, y)).call(this);
     } catch (e) {
-      data.showError(x, y, e);
+      this.showError(x, y, e);
+      return false;
     }
-    const hasChanged = result != cell.computedValue;
+    const hasChanged = !isEqual(result, cell.computedValue);
     cell.computedValue = result;
     return hasChanged;
   }

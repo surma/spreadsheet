@@ -8,3 +8,18 @@ export function clamp(min, v, max) {
   if (v > max) return max;
   return v;
 }
+
+export function isEqual(a, b) {
+  if (typeof a !== typeof b) return false;
+  switch (typeof a) {
+    case "object": {
+      return false; // TODO(lucacasonato): implement deep object equality
+    }
+    case "function": {
+      return a.toString() === b.toString();
+    }
+    default: {
+      return a === b;
+    }
+  }
+}
