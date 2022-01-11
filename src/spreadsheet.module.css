@@ -1,3 +1,7 @@
+* {
+  box-sizing: border-box;
+}
+
 .spreadsheet {
   border-collapse: collapse;
   font-family: monospace;
