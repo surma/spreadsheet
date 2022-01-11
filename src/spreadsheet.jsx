@@ -1,13 +1,13 @@
 /* @jsx h */
 import { h } from "preact";
-import { useState, useRef, useEffect } from "preact/hooks";
+import { useEffect, useRef, useState } from "preact/hooks";
 
 import useSpreadsheetData, { spreadsheetColumn } from "./spreadsheet-data.js";
 import { range } from "./utils.js";
 
 import classes from "./spreadsheet.module.css";
 
-const MOVE_KEY = "MetaLeft";
+const MOVE_KEYS = ["MetaLeft", "AltLeft"];
 
 function focusCell(x, y) {
   document.querySelector(`*[data-x="${x}"][data-y="${y}"`)?.focus();
@@ -44,13 +44,14 @@ export default function Spreadsheet({ rows, cols }) {
   }
 
   useEffect(() => {
-    let metaIsDown = false;
+    let currentPressedMoveKey = undefined;
+
     function downListener(ev) {
-      if (ev.code == MOVE_KEY) {
-        metaIsDown = true;
+      if (MOVE_KEYS.includes(ev.code) && currentPressedMoveKey === undefined) {
+        currentPressedMoveKey = ev.code;
         return;
       }
-      if (ev.code.startsWith("Arrow") && metaIsDown) {
+      if (ev.code.startsWith("Arrow") && currentPressedMoveKey !== undefined) {
         ev.preventDefault();
         const direction = ev.code.slice("Arrow".length);
         const newPos = calcNewPosition(focusedCell, rows, cols, direction);
@@ -59,8 +60,8 @@ export default function Spreadsheet({ rows, cols }) {
     }
 
     function upListener(ev) {
-      if (ev.code == MOVE_KEY) {
-        metaIsDown = false;
+      if (ev.code === currentPressedMoveKey) {
+        currentPressedMoveKey = undefined;
         return;
       }
     }
