@@ -10,7 +10,7 @@ export default function useSpreadsheetData(rows, cols) {
   const [state, dispatch, busy] = useWorkerizedReducer(
     worker,
     "spreadsheetData",
-    newSpreadsheetData(rows, cols)
+    newSpreadsheetData(rows, cols),
   );
   return [state, dispatch, busy];
 }

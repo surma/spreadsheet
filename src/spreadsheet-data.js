@@ -1,4 +1,4 @@
-import { isEqual, range } from "./utils.js";
+import { isEqual, range } from "./utils.ts";
 
 export function spreadsheetColumn(idx) {
   return String.fromCharCode("A".charCodeAt(0) + idx);
