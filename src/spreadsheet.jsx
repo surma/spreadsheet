@@ -2,7 +2,8 @@
 import { h } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 
-import useSpreadsheetData, { spreadsheetColumn } from "./spreadsheet-data.js";
+import { getCell, spreadsheetColumn } from "./spreadsheet-data.js";
+import useSpreadsheetData from "./use-spreadsheet-data.ts";
 import { range } from "./utils.js";
 
 import classes from "./spreadsheet.module.css";
@@ -35,7 +36,7 @@ function calcNewPosition(currentPos, rows, cols, direction) {
 }
 
 export default function Spreadsheet({ rows, cols }) {
-  const [data, dispatch] = useSpreadsheetData(rows, cols);
+  const [data, dispatch, busy] = useSpreadsheetData(rows, cols);
   const { current: focusedCell } = useRef({ x: 0, y: 0 });
 
   function setFocusedCell(x, y) {
@@ -73,6 +74,9 @@ export default function Spreadsheet({ rows, cols }) {
     };
   }, []);
 
+  if (!data) {
+    return <h1>Setting up...</h1>;
+  }
   return (
     <table class={classes.spreadsheet}>
       <tr>
@@ -89,7 +93,8 @@ export default function Spreadsheet({ rows, cols }) {
               <Cell
                 x={x}
                 y={y}
-                cell={data.getCell(x, y)}
+                busy={busy}
+                cell={getCell(data, x, y)}
                 set={(value) => dispatch({ x, y, value })}
                 onEdit={() => setFocusedCell(x, y)}
               />
@@ -101,7 +106,7 @@ export default function Spreadsheet({ rows, cols }) {
   );
 }
 
-function Cell({ x, y, onEdit, cell, set }) {
+function Cell({ x, y, onEdit, cell, set, busy }) {
   const [isEditing, setEditing] = useState(false);
   const ref = useRef(null);
 
@@ -116,6 +121,7 @@ function Cell({ x, y, onEdit, cell, set }) {
       ref={ref}
       class={classes.cell}
       type="text"
+      disabled={busy}
       value={isEditing ? cell.value : cell.computedValue}
       onfocus={() => {
         setEditing(true);

@@ -9,6 +9,7 @@
   "license": "Apache-2.0",
   "dependencies": {
     "preact": "^10.6.4",
-    "vite": "^2.7.10"
+    "use-workerized-reducer": "^0.0.2",
+    "vite": "^2.8.0-beta.1"
   }
 }
