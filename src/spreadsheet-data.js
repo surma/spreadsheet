@@ -4,161 +4,158 @@ export function spreadsheetColumn(idx) {
   return String.fromCharCode("A".charCodeAt(0) + idx);
 }
 
-const COMPUTED_VALUES = new WeakMap();
-
-export function newSpreadsheetData(rows, cols) {
-  const data = {
-    rows,
-    cols,
-    dependencies: new Map(),
-  };
-  data.cells = Array.from({ length: cols * rows }, (_, idx) => {
-    const [x, y] = idxToCoords(data, idx);
-    return {
-      x,
-      y,
-      idx,
-      value: "0",
-      displayValue: "0",
-    };
-  });
-  return data;
-}
-
-export function getCell(data, x, y) {
-  return data.cells[y * data.cols + x];
-}
-
-export function getComputedValue(cell) {
-  return COMPUTED_VALUES.get(cell) ?? 0;
-}
-
-export function setComputedValue(cell, value) {
-  cell.displayValue = value.toString();
-  COMPUTED_VALUES.set(cell, value);
-  return value;
-}
-
-function idxToCoords(data, idx) {
-  return [idx % data.cols, Math.floor(idx / data.cols)];
-}
-
 function coordsToName(x, y) {
   return `${spreadsheetColumn(x)}${y}`;
 }
 
-function idxToName(data, idx) {
-  const [x, y] = idxToCoords(data, idx);
-  return coordsToName(x, y);
-}
-
-export function addDependency(data, cell, dep) {
-  if (!data.dependencies.has(cell)) {
-    data.dependencies.set(cell, new Set());
+export class SpreadsheetData {
+  constructor(rows, cols) {
+    this.rows = rows;
+    this.cols = cols;
+    this.dependencies = new Map();
+    this.cells = Array.from({ length: cols * rows }, (_, idx) => {
+      const [x, y] = this.idxToCoords(idx);
+      return {
+        x,
+        y,
+        idx,
+        value: "0",
+        computedValue: "0",
+      };
+    });
   }
-  data.dependencies.get(cell).add(dep);
-}
 
-function generateCode(data, x, y) {
-  const name = coordsToName(x, y);
-  const cell = getCell(data, x, y);
-  const code = `(function ({data, getCell, addDependency}) {
+  getCell(x, y) {
+    return this.cells[y * this.cols + x];
+  }
+
+  getComputedValue(cell) {
+    return cell.computedValue;
+  }
+
+  setComputedValue(cell, value) {
+    cell.computedValue = value;
+  }
+
+  idxToCoords(idx) {
+    return [idx % this.cols, Math.floor(idx / this.cols)];
+  }
+
+  idxToName(idx) {
+    const [x, y] = this.idxToCoords(idx);
+    return coordsToName(x, y);
+  }
+
+  addDependency(cell, dep) {
+    if (!this.dependencies.has(cell)) {
+      this.dependencies.set(cell, new Set());
+    }
+    this.dependencies.get(cell).add(dep);
+  }
+
+  generateCode(x, y) {
+    const name = coordsToName(x, y);
+    const cell = this.getCell(x, y);
+    const code = `(function ({data}) {
       const COLS=data.cols;
       const ROWS=data.rows;
       const X = ${x};
       const Y = ${y};
-      ${data.cells
+      ${this.cells
         .map((cell, idx) => {
-          const cellName = idxToName(data, idx);
+          const cellName = this.idxToName(idx);
           const x = JSON.stringify(cell.x);
           const y = JSON.stringify(cell.y);
-          return `Object.defineProperty(globalThis, ${JSON.stringify(
-            cellName
-          )}, {
-            configurable: true,
-            get() {
-              addDependency(data, ${JSON.stringify(name)}, ${JSON.stringify(
+          return `
+            Object.defineProperty(globalThis, ${JSON.stringify(cellName)}, {
+              configurable: true,
+              get() {
+                data.addDependency(${JSON.stringify(name)}, ${JSON.stringify(
             cellName
           )});
-              return getComputedValue(getCell(data, ${x}, ${y}));
-            }
-          });`;
+                return data.getComputedValue(data.getCell(${x}, ${y}));
+              }
+            });
+          `;
         })
         .join("\n")}
 
       const rel = (dx, dy) => {
         const x = clamp(0, X + dx, COLS);
         const y = clamp(0, Y + dy, ROWS);
-        return getComputedValue(getCell(data, x, y));
+        return data.getComputedValue(data.getCell(x, y));
       };
 
       return ${cell.value};
     })`;
-  return code;
-}
-
-export function resetDependencies(data, x, y) {
-  data.dependencies.get(coordsToName(x, y))?.clear();
-}
-
-export function showError(data, x, y, e) {
-  setComputedValue(getCell(data, x, y), `#ERROR ${e.message}`);
-}
-
-function computeCell(data, x, y) {
-  const cell = getCell(data, x, y);
-  let result;
-  try {
-    result = eval(generateCode(data, x, y))({ data, getCell, addDependency });
-  } catch (e) {
-    showError(data, x, y, e);
-    return false;
+    return code;
   }
-  const hasChanged = !isEqual(result, getComputedValue(cell));
-  setComputedValue(cell, result);
-  return hasChanged;
-}
 
-function getDependencies(data, name) {
-  return data.dependencies.get(name) ?? [];
-}
+  resetDependencies(x, y) {
+    this.dependencies.get(coordsToName(x, y))?.clear();
+  }
 
-function checkCellForCycle(data, name, origin = name, visited = [origin]) {
-  for (const dep of getDependencies(data, name)) {
-    // Found a cycle back to origin!
-    if (dep === origin) {
-      return [...visited, dep];
+  showError(x, y, e) {
+    this.setComputedValue(this.getCell(x, y), `#ERROR ${e.message}`);
+  }
+
+  computeCell(x, y) {
+    const cell = this.getCell(x, y);
+    let result;
+    try {
+      result = eval(this.generateCode(x, y))({
+        data: this,
+      });
+    } catch (e) {
+      this.showError(x, y, e);
+      return false;
     }
-    if (visited.includes(dep)) continue;
-    const cycle = checkCellForCycle(data, dep, origin, [...visited, dep]);
-    if (cycle) return cycle;
+    const hasChanged = !isEqual(result, this.getComputedValue(cell));
+    this.setComputedValue(cell, result);
+    return hasChanged;
   }
-}
 
-function checkForCycles(data) {
-  for (const y of range(data.rows)) {
-    for (const x of range(data.cols)) {
-      const name = coordsToName(x, y);
-      const cycle = checkCellForCycle(data, name);
+  getDependencies(name) {
+    return this.dependencies.get(name) ?? [];
+  }
+
+  checkCellForCycle(name, origin = name, visited = [origin]) {
+    for (const dep of this.getDependencies(name)) {
+      // Found a cycle back to origin!
+      if (dep === origin) {
+        return [...visited, dep];
+      }
+      if (visited.includes(dep)) continue;
+      const cycle = this.checkCellForCycle(dep, origin, [...visited, dep]);
       if (cycle) return cycle;
     }
   }
-}
 
-function computeAllCells(data) {
-  let hasChanged = false;
-  for (const y of range(data.rows)) {
-    for (const x of range(data.cols)) {
-      hasChanged = hasChanged || computeCell(data, x, y);
+  checkForCycles() {
+    for (const y of range(this.rows)) {
+      for (const x of range(this.cols)) {
+        const name = coordsToName(x, y);
+        const cycle = this.checkCellForCycle(name);
+        if (cycle) return cycle;
+      }
     }
   }
-  const cycle = checkForCycles(data);
-  if (cycle) {
-    throw Error(`Found a cycle: ${cycle.join("->")}`);
-  }
-  return hasChanged;
-}
 
-export function propagateAllUpdates(data) {
-  while (computeAllCells(data));
+  computeAllCells() {
+    let hasChanged = false;
+    for (const y of range(this.rows)) {
+      for (const x of range(this.cols)) {
+        hasChanged = hasChanged || this.computeCell(x, y);
+      }
+    }
+    const cycle = this.checkForCycles();
+    if (cycle) {
+      throw Error(`Found a cycle: ${cycle.join("->")}`);
+    }
+    return hasChanged;
+  }
+
+  propagateAllUpdates() {
+    while (this.computeAllCells());
+  }
 }

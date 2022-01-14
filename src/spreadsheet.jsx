@@ -2,13 +2,17 @@
 import { h } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 
-import { getCell, spreadsheetColumn } from "./spreadsheet-data.js";
+import { spreadsheetColumn } from "./spreadsheet-data.js";
 import useSpreadsheetData from "./use-spreadsheet-data.ts";
 import { range } from "./utils.ts";
 
 import classes from "./spreadsheet.module.css";
 
 const MOVE_KEYS = ["MetaLeft", "AltLeft"];
+
+function getCell(data, x, y) {
+  return data.cells[y * data.cols + x];
+}
 
 function focusCell(x, y) {
   document.querySelector(`*[data-x="${x}"][data-y="${y}"`)?.focus();
