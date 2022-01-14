@@ -122,12 +122,12 @@ function Cell({ x, y, onEdit, cell, set, busy }) {
       class={classes.cell}
       type="text"
       disabled={busy}
-      value={isEditing ? cell.value : cell.computedValue}
+      value={isEditing ? cell.value : cell.displayValue}
       onfocus={() => {
         setEditing(true);
         onEdit();
       }}
-      title={cell.computedValue}
+      title={cell.displayValue}
       readonly={!isEditing}
       onblur={(ev) => {
         setEditing(false);

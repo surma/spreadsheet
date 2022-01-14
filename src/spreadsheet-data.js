@@ -4,6 +4,8 @@ export function spreadsheetColumn(idx) {
   return String.fromCharCode("A".charCodeAt(0) + idx);
 }
 
+const COMPUTED_VALUES = new WeakMap();
+
 export function newSpreadsheetData(rows, cols) {
   const data = {
     rows,
@@ -16,8 +18,8 @@ export function newSpreadsheetData(rows, cols) {
       x,
       y,
       idx,
-      value: 0,
-      computedValue: 0,
+      value: "0",
+      displayValue: "0",
     };
   });
   return data;
@@ -25,6 +27,16 @@ export function newSpreadsheetData(rows, cols) {
 
 export function getCell(data, x, y) {
   return data.cells[y * data.cols + x];
+}
+
+export function getComputedValue(cell) {
+  return COMPUTED_VALUES.get(cell) ?? 0;
+}
+
+export function setComputedValue(cell, value) {
+  cell.displayValue = value.toString();
+  COMPUTED_VALUES.set(cell, value);
+  return value;
 }
 
 function idxToCoords(data, idx) {
@@ -68,7 +80,7 @@ function generateCode(data, x, y) {
               addDependency(data, ${JSON.stringify(name)}, ${JSON.stringify(
             cellName
           )});
-              return getCell(data, ${x}, ${y}).computedValue;
+              return getComputedValue(getCell(data, ${x}, ${y}));
             }
           });`;
         })
@@ -77,7 +89,7 @@ function generateCode(data, x, y) {
       const rel = (dx, dy) => {
         const x = clamp(0, X + dx, COLS);
         const y = clamp(0, Y + dy, ROWS);
-        return getCell(data, x, y).computedValue;
+        return getComputedValue(getCell(data, x, y));
       };
 
       return ${cell.value};
@@ -90,7 +102,7 @@ export function resetDependencies(data, x, y) {
 }
 
 export function showError(data, x, y, e) {
-  getCell(data, x, y).computedValue = `#ERROR ${e.message}`;
+  setComputedValue(getCell(data, x, y), `#ERROR ${e.message}`);
 }
 
 function computeCell(data, x, y) {
@@ -102,8 +114,8 @@ function computeCell(data, x, y) {
     showError(data, x, y, e);
     return false;
   }
-  const hasChanged = !isEqual(result, cell.computedValue);
-  cell.computedValue = result;
+  const hasChanged = !isEqual(result, getComputedValue(cell));
+  setComputedValue(cell, result);
   return hasChanged;
 }
 
