@@ -20,7 +20,7 @@ export class SpreadsheetData {
         y,
         idx,
         value: "0",
-        computedValue: "0",
+        computedValue: 0,
       };
     });
   }
