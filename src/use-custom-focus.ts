@@ -80,14 +80,14 @@ export default function useCustomFocus(rows: number, cols: number) {
         y: focus.topLeft.y + focus.height - 1,
       };
       if (dx < 0) {
-        focus.topLeft.x += dx;
+        focus.topLeft.x = clamp(0, focus.topLeft.x + dx, cols - 1);
       } else {
-        otherP.x += dx;
+        otherP.x = clamp(0, otherP.x + dx, cols - 1);
       }
       if (dy < 0) {
-        focus.topLeft.y += dy;
+        focus.topLeft.y = clamp(0, focus.topLeft.y + dy, rows - 1);
       } else {
-        otherP.y += dy;
+        otherP.y = clamp(0, otherP.y + dy, rows - 1);
       }
       const rect = rectangleFromPoints(focus.topLeft, otherP);
       return { ...focus, ...rect };

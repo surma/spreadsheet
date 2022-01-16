@@ -2,28 +2,37 @@ import { initWorkerizedReducer } from "use-workerized-reducer/preact";
 
 import { SpreadsheetData } from "./spreadsheet-data.js";
 
+function calcDisplayValue(cell) {
+  if (typeof cell.computedValue === "function") {
+    return "<func>";
+  } else {
+    return JSON.stringify(cell.computedValue);
+  }
+}
+
 initWorkerizedReducer(
   "spreadsheetData",
-  (data, { x, y, value }, localState) => {
+  (data, newValues, localState) => {
     if (!localState.spreadsheet) {
       localState.spreadsheet = new SpreadsheetData(data.cols, data.rows);
     }
+
+    // Update changed cells
     const { spreadsheet } = localState;
-    const cell = spreadsheet.getCell(x, y);
-    cell.value = value;
-    spreadsheet.resetDependencies(x, y);
+    for (const { x, y, value } of newValues) {
+      const cell = spreadsheet.getCell(x, y);
+      cell.value = value;
+      spreadsheet.resetDependencies(x, y);
+    }
+
     try {
       spreadsheet.propagateAllUpdates();
     } catch (e) {
       spreadsheet.showError(x, y, e);
     }
     for (const [idx, cell] of spreadsheet.cells.entries()) {
-      if (typeof cell.computedValue === "function") {
-        data.cells[idx].displayValue = "<func>";
-      } else {
-        data.cells[idx].displayValue = cell.computedValue;
-      }
       data.cells[idx].value = cell.value;
+      data.cells[idx].displayValue = calcDisplayValue(cell);
     }
   },
   () => ({})

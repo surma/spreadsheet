@@ -38,10 +38,6 @@ export default function Spreadsheet({ rows, cols }) {
     },
   ] = useCustomFocus(rows, cols);
 
-  function setFocusedCell(x, y) {
-    focusSingleCell(x, y);
-  }
-
   useEffect(() => {
     let moveKeyDown = null;
     let expandKeyDown = null;
@@ -92,13 +88,7 @@ export default function Spreadsheet({ rows, cols }) {
   }, []);
 
   function setValue(value) {
-    for (const { x, y } of focusedCells()) {
-      dispatch({
-        x,
-        y,
-        value,
-      });
-    }
+    dispatch([...focusedCells()].map(({ x, y }) => ({ x, y, value })));
   }
 
   if (!data) {
