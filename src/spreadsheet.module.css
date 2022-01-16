@@ -52,3 +52,11 @@ input.cell:not([readonly]) {
 .focused {
   background-color: hsla(120, 60%, 90%) !important;
 }
+
+.hidden {
+  display: none;
+}
+
+.busy {
+  color: transparent;
+}

@@ -1,4 +1,6 @@
-import { isEqual, range } from "./utils.ts";
+import { isEqual, range, clamp } from "./utils.ts";
+
+globalThis.clamp = clamp;
 
 export function spreadsheetColumn(idx) {
   return String.fromCharCode("A".charCodeAt(0) + idx);

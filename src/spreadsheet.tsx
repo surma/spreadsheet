@@ -1,7 +1,8 @@
 /* @jsx h */
-import { h } from "preact";
+import { h, Fragment } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 
+import "./classlist-hook.js";
 import { spreadsheetColumn } from "./spreadsheet-data.js";
 import useSpreadsheetData from "./use-spreadsheet-data.ts";
 import useCustomFocus from "./use-custom-focus.ts";
@@ -27,7 +28,14 @@ export default function Spreadsheet({ rows, cols }) {
   const [data, dispatch, busy] = useSpreadsheetData(rows, cols);
   const [
     focus,
-    { focusSingleCell, isInFocus, moveFocus, expandFocus, toggleEditing },
+    {
+      focusSingleCell,
+      isInFocus,
+      moveFocus,
+      expandFocus,
+      toggleEditing,
+      focusedCells,
+    },
   ] = useCustomFocus(rows, cols);
 
   function setFocusedCell(x, y) {
@@ -84,13 +92,13 @@ export default function Spreadsheet({ rows, cols }) {
   }, []);
 
   function setValue(value) {
-    dispatch({
-      x: focus.topLeft.x,
-      y: focus.topLeft.y,
-      value,
-    });
-    // for(const {x, y} of focusedCells()) {
-    // }
+    for (const { x, y } of focusedCells()) {
+      dispatch({
+        x,
+        y,
+        value,
+      });
+    }
   }
 
   if (!data) {
@@ -121,7 +129,6 @@ export default function Spreadsheet({ rows, cols }) {
                 busy={busy}
                 cell={getCell(data, x, y)}
                 set={setValue}
-                onEdit={() => setFocusedCell(x, y)}
               />
             </td>
           ))}
@@ -131,29 +138,48 @@ export default function Spreadsheet({ rows, cols }) {
   );
 }
 
-function Cell({ x, y, isFocused, isEditing, onEdit, cell, set, busy }) {
+function Cell({ x, y, isFocused, isEditing, cell, set, busy }) {
   const ref = useRef(null);
-  const classNames = [classes.cell];
-  if (isFocused) classNames.push(classes.focused);
+  // Have to maintain what’s in the input field, because otherwise the re-render
+  // caused by `isEditing` going from true to false will reset the text field
+  // before I can grab the value.
+  const inputRef = useRef<{ value?: string }>({});
 
   useEffect(() => {
     if (isEditing) ref.current?.select();
+    if (!isEditing && inputRef.current.value) set(inputRef.current.value);
   }, [isEditing]);
 
-  if (!isEditing) {
-    return <span class={classNames.join(" ")}>{cell.displayValue}</span>;
-  }
-
   return (
-    <input
-      data-x={x}
-      data-y={y}
-      ref={ref}
-      class={classNames.join(" ")}
-      type="text"
-      disabled={busy}
-      value={cell.value}
-      title={cell.displayValue}
-    />
+    <Fragment>
+      <span
+        classes={[
+          classes.cell,
+          isFocused ? classes.focused : null,
+          isEditing ? classes.hidden : null,
+          busy ? classes.busy : null,
+        ]}
+      >
+        {cell.displayValue}
+      </span>
+      <input
+        hidden={!isEditing}
+        data-x={x}
+        data-y={y}
+        ref={ref}
+        onInput={(ev) => {
+          inputRef.current.value = (ev.target as HTMLInputElement).value;
+        }}
+        classes={[
+          classes.cell,
+          isFocused ? classes.focused : null,
+          !isEditing ? classes.hidden : null,
+        ]}
+        type="text"
+        disabled={busy}
+        value={cell.value}
+        title={cell.displayValue}
+      />
+    </Fragment>
   );
 }
