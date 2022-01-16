@@ -4,18 +4,16 @@ import { useEffect, useRef, useState } from "preact/hooks";
 
 import { spreadsheetColumn } from "./spreadsheet-data.js";
 import useSpreadsheetData from "./use-spreadsheet-data.ts";
+import useCustomFocus from "./use-custom-focus.ts";
 import { range } from "./utils.ts";
 
 import classes from "./spreadsheet.module.css";
 
 const MOVE_KEYS = ["MetaLeft", "AltLeft"];
+const EXPAND_KEYS = ["ShiftLeft"];
 
 function getCell(data, x, y) {
   return data.cells[y * data.cols + x];
-}
-
-function focusCell(x, y) {
-  document.querySelector(`*[data-x="${x}"][data-y="${y}"`)?.focus();
 }
 
 const navigation = {
@@ -25,58 +23,75 @@ const navigation = {
   Right: { x: 1, y: 0 },
 };
 
-function calcNewPosition(currentPos, rows, cols, direction) {
-  const newPos = { ...currentPos };
-  const delta = navigation[direction];
-  newPos.x += delta.x;
-  newPos.y += delta.y;
-  if (newPos.x < 0 || newPos.x >= cols) {
-    newPos.x = (newPos.x + cols) % cols;
-  }
-  if (newPos.y < 0 || newPos.y >= rows) {
-    newPos.y = (newPos.y + rows) % rows;
-  }
-  return newPos;
-}
-
 export default function Spreadsheet({ rows, cols }) {
   const [data, dispatch, busy] = useSpreadsheetData(rows, cols);
-  const { current: focusedCell } = useRef({ x: 0, y: 0 });
+  const [
+    focus,
+    { focusSingleCell, isInFocus, moveFocus, expandFocus, toggleEditing },
+  ] = useCustomFocus(rows, cols);
 
   function setFocusedCell(x, y) {
-    focusedCell.x = x;
-    focusedCell.y = y;
+    focusSingleCell(x, y);
   }
 
   useEffect(() => {
-    let currentPressedMoveKey = undefined;
+    let moveKeyDown = null;
+    let expandKeyDown = null;
 
     function downListener(ev) {
-      if (MOVE_KEYS.includes(ev.code) && currentPressedMoveKey === undefined) {
-        currentPressedMoveKey = ev.code;
+      if (MOVE_KEYS.includes(ev.code)) {
+        moveKeyDown = ev.code;
         return;
       }
-      if (ev.code.startsWith("Arrow") && currentPressedMoveKey !== undefined) {
+      if (EXPAND_KEYS.includes(ev.code)) {
+        expandKeyDown = ev.code;
+        return;
+      }
+      if (ev.code.startsWith("Arrow") && moveKeyDown) {
         ev.preventDefault();
-        const direction = ev.code.slice("Arrow".length);
-        const newPos = calcNewPosition(focusedCell, rows, cols, direction);
-        focusCell(newPos.x, newPos.y);
+        const direction = navigation[ev.code.slice("Arrow".length)];
+        moveFocus(direction.x, direction.y);
+        return;
+      }
+      if (ev.code.startsWith("Arrow") && expandKeyDown) {
+        ev.preventDefault();
+        const direction = navigation[ev.code.slice("Arrow".length)];
+        expandFocus(direction.x, direction.y);
+        return;
+      }
+      if (ev.code === "Enter") {
+        ev.preventDefault();
+        toggleEditing();
       }
     }
 
     function upListener(ev) {
-      if (ev.code === currentPressedMoveKey) {
-        currentPressedMoveKey = undefined;
+      if (ev.code === moveKeyDown) {
+        moveKeyDown = null;
+        return;
+      }
+      if (ev.code === expandKeyDown) {
+        expandKeyDown = null;
         return;
       }
     }
     document.addEventListener("keydown", downListener, { capture: true });
     document.addEventListener("keyup", upListener, { capture: true });
     return () => {
-      document.removeEventListener("keydown", downListener);
-      document.removeEventListener("keyup", upListener);
+      document.removeEventListener("keydown", downListener, { capture: true });
+      document.removeEventListener("keyup", upListener, { capture: true });
     };
   }, []);
+
+  function setValue(value) {
+    dispatch({
+      x: focus.topLeft.x,
+      y: focus.topLeft.y,
+      value,
+    });
+    // for(const {x, y} of focusedCells()) {
+    // }
+  }
 
   if (!data) {
     return <h1>Setting up...</h1>;
@@ -97,9 +112,15 @@ export default function Spreadsheet({ rows, cols }) {
               <Cell
                 x={x}
                 y={y}
+                isFocused={isInFocus(x, y)}
+                isEditing={
+                  focus.editing &&
+                  focus.topLeft.x === x &&
+                  focus.topLeft.y === y
+                }
                 busy={busy}
                 cell={getCell(data, x, y)}
-                set={(value) => dispatch({ x, y, value })}
+                set={setValue}
                 onEdit={() => setFocusedCell(x, y)}
               />
             </td>
@@ -110,33 +131,29 @@ export default function Spreadsheet({ rows, cols }) {
   );
 }
 
-function Cell({ x, y, onEdit, cell, set, busy }) {
-  const [isEditing, setEditing] = useState(false);
+function Cell({ x, y, isFocused, isEditing, onEdit, cell, set, busy }) {
   const ref = useRef(null);
+  const classNames = [classes.cell];
+  if (isFocused) classNames.push(classes.focused);
 
   useEffect(() => {
     if (isEditing) ref.current?.select();
   }, [isEditing]);
+
+  if (!isEditing) {
+    return <span class={classNames.join(" ")}>{cell.displayValue}</span>;
+  }
 
   return (
     <input
       data-x={x}
       data-y={y}
       ref={ref}
-      class={classes.cell}
+      class={classNames.join(" ")}
       type="text"
       disabled={busy}
-      value={isEditing ? cell.value : cell.displayValue}
-      onfocus={() => {
-        setEditing(true);
-        onEdit();
-      }}
+      value={cell.value}
       title={cell.displayValue}
-      readonly={!isEditing}
-      onblur={(ev) => {
-        setEditing(false);
-        set(ev.target.value);
-      }}
     />
   );
 }

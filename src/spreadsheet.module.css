@@ -48,3 +48,7 @@ input.cell {
 input.cell:not([readonly]) {
   outline: 1px solid blue;
 }
+
+.focused {
+  background-color: hsla(120, 60%, 90%) !important;
+}
