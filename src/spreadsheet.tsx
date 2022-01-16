@@ -151,11 +151,9 @@ function Cell({ x, y, isFocused, isEditing, cell, set, busy }) {
   }, [isEditing]);
 
   return (
-    <Fragment>
+    <div classes={[classes.cell, isFocused ? classes.focused : null]}>
       <span
         classes={[
-          classes.cell,
-          isFocused ? classes.focused : null,
           isEditing ? classes.hidden : null,
           busy ? classes.busy : null,
         ]}
@@ -171,7 +169,6 @@ function Cell({ x, y, isFocused, isEditing, cell, set, busy }) {
           inputRef.current.value = (ev.target as HTMLInputElement).value;
         }}
         classes={[
-          classes.cell,
           isFocused ? classes.focused : null,
           !isEditing ? classes.hidden : null,
         ]}
@@ -180,6 +177,6 @@ function Cell({ x, y, isFocused, isEditing, cell, set, busy }) {
         value={cell.value}
         title={cell.displayValue}
       />
-    </Fragment>
+    </div>
   );
 }

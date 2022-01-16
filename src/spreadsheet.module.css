@@ -37,16 +37,14 @@
   height: 100%;
 }
 
-input.cell {
+.cell input {
   font-family: inherit;
   font-weight: inherit;
   border: 0;
   text-align: right;
   background: transparent;
-}
-
-input.cell:not([readonly]) {
-  outline: 1px solid blue;
+  width: 100%;
+  height: 100%;
 }
 
 .focused {
