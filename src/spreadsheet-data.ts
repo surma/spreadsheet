@@ -120,7 +120,7 @@ export class SpreadsheetData {
     this.dependencies.get(this.coordsToIdx(x, y))?.clear();
   }
 
-  showError(x: number, y: number, e: Error) {
+  showError(x: number, y: number, e: any) {
     this.setComputedValue(this.getCell(x, y), `#ERROR ${e.message}`);
   }
 
