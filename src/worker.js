@@ -5,6 +5,8 @@ import { SpreadsheetData } from "./spreadsheet-data.ts";
 function calcDisplayValue(cell) {
   if (typeof cell.computedValue === "function") {
     return "<func>";
+  } else if (typeof cell.computedValue === "bigint") {
+    return cell.computedValue.toString();
   } else {
     return JSON.stringify(cell.computedValue);
   }
