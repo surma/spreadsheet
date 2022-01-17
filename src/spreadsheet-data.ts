@@ -10,24 +10,28 @@ interface Cell {
   computedValue: any;
 }
 
-export function spreadsheetColumn(idx: number) {
+export function spreadsheetColumn(idx: number): string {
   return String.fromCharCode("A".charCodeAt(0) + idx);
 }
 
-function coordsToName(x: number, y: number) {
+function coordsToName(x: number, y: number): string {
   return `${spreadsheetColumn(x)}${y}`;
 }
 
-export class SpreadsheetData {
-  rows: number;
-  cols: number;
-  dependencies: Map<string, Set<string>>;
-  cells: Cell[];
+export interface Cell {
+  x: number;
+  y: number;
+  idx: number;
+  value: string;
+  computedValue: any;
+}
 
-  constructor(rows: number, cols: number) {
-    this.rows = rows;
-    this.cols = cols;
-    this.dependencies = new Map();
+export class SpreadsheetData {
+  // Cell idx -> Set of cell idx
+  dependencies: Map<number, Set<number>> = new Map();
+  cells: Array<Cell>;
+
+  constructor(public rows, public cols) {
     this.cells = Array.from({ length: cols * rows }, (_, idx) => {
       const [x, y] = this.idxToCoords(idx);
       return {
@@ -40,11 +44,11 @@ export class SpreadsheetData {
     });
   }
 
-  getCell(x: number, y: number) {
-    return this.cells[y * this.cols + x];
+  getCell(x: number, y: number): Cell {
+    return this.cells[this.coordsToIdx(x, y)];
   }
 
-  getComputedValue(cell: Cell) {
+  getComputedValue(cell: Cell): any {
     return cell.computedValue;
   }
 
@@ -52,25 +56,29 @@ export class SpreadsheetData {
     cell.computedValue = value;
   }
 
-  idxToCoords(idx: number) {
+  coordsToIdx(x: number, y: number): number {
+    return y * this.cols + x;
+  }
+
+  idxToCoords(idx: number): [number, number] {
     return [idx % this.cols, Math.floor(idx / this.cols)];
   }
 
-  idxToName(idx: number) {
+  idxToName(idx: number): string {
     const [x, y] = this.idxToCoords(idx);
     return coordsToName(x, y);
   }
 
-  addDependency(name: string, depName: string) {
-    let deps = this.dependencies.get(name);
-    if (!deps) {
-      deps = new Set([depName]);
-      this.dependencies.set(name, deps);
+  addDependency(cellIdx: number, depIdx: number) {
+    const name = this.idxToName(cellIdx);
+    if (!this.dependencies.has(cellIdx)) {
+      this.dependencies.set(cellIdx, new Set());
     }
-    deps.add(depName);
+    this.dependencies.get(cellIdx).add(depIdx);
   }
 
-  generateCode(x: number, y: number) {
+  generateCode(x: number, y: number): string {
+    const currentIdx = this.coordsToIdx(x, y);
     const name = coordsToName(x, y);
     const cell = this.getCell(x, y);
     const code = `(function ({data}) {
@@ -87,9 +95,7 @@ export class SpreadsheetData {
             Object.defineProperty(globalThis, ${JSON.stringify(cellName)}, {
               configurable: true,
               get() {
-                data.addDependency(${JSON.stringify(name)}, ${JSON.stringify(
-            cellName
-          )});
+                data.addDependency(${currentIdx}, ${idx});
                 return data.getComputedValue(data.getCell(${x}, ${y}));
               }
             });
@@ -109,17 +115,14 @@ export class SpreadsheetData {
   }
 
   resetDependencies(x: number, y: number) {
-    this.dependencies.get(coordsToName(x, y))?.clear();
+    this.dependencies.get(this.coordsToIdx(x, y))?.clear();
   }
 
-  showError(x: number, y: number, e: any) {
-    this.setComputedValue(
-      this.getCell(x, y),
-      `#ERROR ${e?.message ?? String(e)}`
-    );
+  showError(x: number, y: number, e: Error) {
+    this.setComputedValue(this.getCell(x, y), `#ERROR ${e.message}`);
   }
 
-  computeCell(x: number, y: number) {
+  computeCell(x: number, y: number): boolean {
     const cell = this.getCell(x, y);
     let result: any;
     try {
@@ -135,51 +138,27 @@ export class SpreadsheetData {
     return hasChanged;
   }
 
-  getDependencies(name: string) {
-    return this.dependencies.get(name) ?? new Set<string>([]);
+  getDependencies(idx: number): number[] {
+    return [...(this.dependencies.get(idx) ?? new Set()).values()];
   }
 
-  checkCellForCycle(
-    name: string,
-    origin = name,
-    visited = [origin]
-  ): string[] | undefined {
-    for (const dep of this.getDependencies(name)) {
-      // Found a cycle back to origin!
-      if (dep === origin) {
-        return [...visited, dep];
-      }
-      if (visited.includes(dep)) continue;
-      const cycle = this.checkCellForCycle(dep, origin, [...visited, dep]);
-      if (cycle) return cycle;
+  getDependents(idx: number): number[] {
+    const result = new Set<number>();
+    for (const [dependent, dependencies] of this.dependencies.entries()) {
+      if (dependencies.has(idx)) result.add(dependent);
     }
+    return [...result];
   }
 
-  checkForCycles() {
-    for (const y of range(this.rows)) {
-      for (const x of range(this.cols)) {
-        const name = coordsToName(x, y);
-        const cycle = this.checkCellForCycle(name);
-        if (cycle) return cycle;
+  propagateUpdates(changedCells: number[]) {
+    // Copy, because we wanna push stuff into this.
+    changedCells = changedCells.slice();
+    for (const idx of changedCells) {
+      const [x, y] = this.idxToCoords(idx);
+      this.computeCell(x, y);
+      for (const dep of this.getDependents(idx)) {
+        changedCells.push(dep);
       }
     }
-  }
-
-  computeAllCells() {
-    let hasChanged = false;
-    for (const y of range(this.rows)) {
-      for (const x of range(this.cols)) {
-        hasChanged = hasChanged || this.computeCell(x, y);
-      }
-    }
-    const cycle = this.checkForCycles();
-    if (cycle) {
-      throw Error(`Found a cycle: ${cycle.join("->")}`);
-    }
-    return hasChanged;
-  }
-
-  propagateAllUpdates() {
-    while (this.computeAllCells());
   }
 }

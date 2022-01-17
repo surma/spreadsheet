@@ -26,7 +26,9 @@ initWorkerizedReducer(
     }
 
     try {
-      spreadsheet.propagateAllUpdates();
+      spreadsheet.propagateUpdates(
+        newValues.map(({ x, y }) => spreadsheet.coordsToIdx(x, y))
+      );
     } catch (e) {
       spreadsheet.showError(x, y, e);
     }
