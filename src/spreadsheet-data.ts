@@ -106,6 +106,8 @@ export class SpreadsheetData {
       const rel = (dx, dy) => {
         const x = clamp(0, X + dx, COLS);
         const y = clamp(0, Y + dy, ROWS);
+        const idx = data.coordsToIdx(x, y);
+        data.addDependency(${currentIdx}, idx);
         return data.getComputedValue(data.getCell(x, y));
       };
 
