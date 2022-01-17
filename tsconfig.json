@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "module": "esnext",
+    "target": "esnext",
     "moduleResolution": "node",
     "lib": ["dom", "webworker", "esnext"],
     "jsx": "react"

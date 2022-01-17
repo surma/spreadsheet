@@ -2,8 +2,8 @@
 import { h, Fragment } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 
-import "./classlist-hook.js";
-import { spreadsheetColumn } from "./spreadsheet-data.js";
+import "./classlist-hook.ts";
+import { spreadsheetColumn } from "./spreadsheet-data.ts";
 import useSpreadsheetData from "./use-spreadsheet-data.ts";
 import useCustomFocus from "./use-custom-focus.ts";
 import { range } from "./utils.ts";
@@ -24,7 +24,12 @@ const navigation = {
   Right: { x: 1, y: 0 },
 };
 
-export default function Spreadsheet({ rows, cols }) {
+interface SpreadsheetProps {
+  rows: number;
+  cols: number;
+}
+
+export default function Spreadsheet({ rows, cols }: SpreadsheetProps) {
   const [data, dispatch, busy] = useSpreadsheetData(rows, cols);
   const [
     focus,
@@ -39,8 +44,8 @@ export default function Spreadsheet({ rows, cols }) {
   ] = useCustomFocus(rows, cols);
 
   useEffect(() => {
-    let moveKeyDown = null;
-    let expandKeyDown = null;
+    let moveKeyDown: string | null = null;
+    let expandKeyDown: string | null = null;
 
     function downListener(ev) {
       if (MOVE_KEYS.includes(ev.code)) {
@@ -53,13 +58,15 @@ export default function Spreadsheet({ rows, cols }) {
       }
       if (ev.code.startsWith("Arrow") && moveKeyDown) {
         ev.preventDefault();
-        const direction = navigation[ev.code.slice("Arrow".length)];
+        const direction =
+          navigation[ev.code.slice("Arrow".length) as keyof typeof navigation];
         moveFocus(direction.x, direction.y);
         return;
       }
       if (ev.code.startsWith("Arrow") && expandKeyDown) {
         ev.preventDefault();
-        const direction = navigation[ev.code.slice("Arrow".length)];
+        const direction =
+          navigation[ev.code.slice("Arrow".length) as keyof typeof navigation];
         expandFocus(direction.x, direction.y);
         return;
       }

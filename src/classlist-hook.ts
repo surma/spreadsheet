@@ -1,4 +1,14 @@
-import { options } from "preact";
+import { JSX, options } from "preact";
+
+declare module "preact" {
+  namespace h {
+    namespace JSX {
+      interface HTMLAttributes {
+        classes?: string[];
+      }
+    }
+  }
+}
 
 let oldHook = options.vnode;
 options.vnode = (vnode) => {

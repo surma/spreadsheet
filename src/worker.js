@@ -1,6 +1,6 @@
 import { initWorkerizedReducer } from "use-workerized-reducer/preact";
 
-import { SpreadsheetData } from "./spreadsheet-data.js";
+import { SpreadsheetData } from "./spreadsheet-data.ts";
 
 function calcDisplayValue(cell) {
   if (typeof cell.computedValue === "function") {
