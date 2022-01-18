@@ -1,3 +1,4 @@
+import { DisplaySpreadsheetData } from "./types";
 import { isEqual, range, clamp } from "./utils.ts";
 
 globalThis.clamp = clamp;
@@ -27,19 +28,23 @@ export interface Cell {
 }
 
 export class SpreadsheetData {
+  cols: number;
+  rows: number;
   // Cell idx -> Set of cell idx
   dependencies: Map<number, Set<number>> = new Map();
   cells: Array<Cell>;
 
-  constructor(public rows, public cols) {
-    this.cells = Array.from({ length: cols * rows }, (_, idx) => {
+  constructor(initialData: DisplaySpreadsheetData) {
+    this.cols = initialData.cols;
+    this.rows = initialData.rows;
+    this.cells = initialData.cells.map((cell, idx) => {
       const [x, y] = this.idxToCoords(idx);
       return {
         x,
         y,
         idx,
-        value: "0",
-        computedValue: 0,
+        value: cell.value,
+        computedValue: "0",
       };
     });
   }

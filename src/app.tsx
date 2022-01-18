@@ -2,7 +2,7 @@
 /** @jsxFrag Fragment */
 import { Fragment, h } from "preact";
 
-import Spreadsheet from "./spreadsheet.tsx";
+import { StoredSpreadsheet } from "./stored-spreadsheet.tsx";
 import Usage from "./usage.tsx";
 import { useLock } from "./use-lock.ts";
 
@@ -20,7 +20,7 @@ export default function App() {
 
   return (
     <>
-      <Spreadsheet rows={20} cols={20} />
+      <StoredSpreadsheet rows={20} cols={20} />
       <Usage />
     </>
   );

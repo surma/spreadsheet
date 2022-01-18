@@ -16,7 +16,8 @@ initWorkerizedReducer(
   "spreadsheetData",
   (data, newValues, localState) => {
     if (!localState.spreadsheet) {
-      localState.spreadsheet = new SpreadsheetData(data.cols, data.rows);
+      localState.spreadsheet = new SpreadsheetData(data);
+      localState.spreadsheet.propagateUpdates(data.cells.map(({ idx }) => idx));
     }
 
     // Update changed cells

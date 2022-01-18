@@ -8,6 +8,7 @@
   "author": "Surma <surma@surma.dev>",
   "license": "Apache-2.0",
   "dependencies": {
+    "idb-keyval": "^6.1.0",
     "preact": "^10.6.4",
     "use-workerized-reducer": "^0.0.7",
     "vite": "^2.8.0-beta.1"

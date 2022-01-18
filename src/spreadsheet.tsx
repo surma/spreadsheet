@@ -1,12 +1,13 @@
-/* @jsx h */
-import { h, Fragment } from "preact";
-import { useEffect, useRef, useState } from "preact/hooks";
+/** @jsx h */
+import { h } from "preact";
+import { useEffect, useRef } from "preact/hooks";
 
 import "./classlist-hook.ts";
 import { spreadsheetColumn } from "./spreadsheet-data.ts";
 import useSpreadsheetData from "./use-spreadsheet-data.ts";
 import useCustomFocus from "./use-custom-focus.ts";
 import { range } from "./utils.ts";
+import { DisplaySpreadsheetData } from "./types.ts";
 
 import classes from "./spreadsheet.module.css";
 
@@ -25,12 +26,14 @@ const navigation = {
 };
 
 interface SpreadsheetProps {
-  rows: number;
-  cols: number;
+  initialData: DisplaySpreadsheetData;
+  save: (data: DisplaySpreadsheetData) => void;
 }
 
-export default function Spreadsheet({ rows, cols }: SpreadsheetProps) {
-  const [data, dispatch, busy] = useSpreadsheetData(rows, cols);
+export default function Spreadsheet({ initialData, save }: SpreadsheetProps) {
+  const [data, dispatch, busy] = useSpreadsheetData(initialData);
+  const rows = data?.rows ?? initialData.rows;
+  const cols = data?.cols ?? initialData.cols;
   const [
     focus,
     {
@@ -42,6 +45,10 @@ export default function Spreadsheet({ rows, cols }: SpreadsheetProps) {
       focusedCells,
     },
   ] = useCustomFocus(rows, cols);
+
+  useEffect(() => {
+    save(data);
+  }, [data]);
 
   useEffect(() => {
     let moveKeyDown: string | null = null;
@@ -101,6 +108,7 @@ export default function Spreadsheet({ rows, cols }: SpreadsheetProps) {
   if (!data) {
     return <h1>Setting up...</h1>;
   }
+
   return (
     <table class={classes.spreadsheet}>
       <tr>

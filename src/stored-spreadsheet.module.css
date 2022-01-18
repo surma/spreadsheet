@@ -1,0 +1,7 @@
+div.saving {
+  position: absolute;
+  bottom: 0.5em;
+  right: 0.5em;
+  padding: 0.5em;
+  background-color: #b5ff9f;
+}
