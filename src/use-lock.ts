@@ -7,6 +7,10 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
  * different tab).
  */
 export function useLock(name: string): [locked: boolean, steal: () => void] {
+  if (!("locks" in navigator)) {
+    return [true, () => {}]; // on browsers that lack locks, always pretend we're locked
+  }
+
   const [locked, setLocked] = useState(false);
   const aborter = useRef<AbortController | undefined>(undefined);
 
